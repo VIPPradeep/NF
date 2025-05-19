@@ -74,51 +74,57 @@ class Plugin {
 			self::$instance = new self();
 			self::$instance->includes();
 
-			// Run export via WP-Cron.
-			add_action( 'simply_static_site_export_cron', array( self::$instance, 'run_static_export' ) );
+			// Apply hooks after init to avoid loading issues.
+			add_action( 'init', function () {
+				// Run export via WP-Cron.
+				add_action( 'simply_static_site_export_cron', array( self::$instance, 'run_static_export' ) );
 
-			// Filters.
-			add_filter( 'simplystatic.archive_creation_job.task_list', array(
-				self::$instance,
-				'filter_task_list'
-			), 10, 2 );
+				// Filters.
+				add_filter( 'simplystatic.archive_creation_job.task_list', array(
+					self::$instance,
+					'filter_task_list'
+				), 10, 2 );
 
-			// Maybe clear local directory.
-			add_action( 'ss_after_setup_task', array( self::$instance, 'maybe_clear_directory' ) );
+				// Maybe clear local directory.
+				add_action( 'ss_after_setup_task', array( self::$instance, 'maybe_clear_directory' ) );
 
-			// Add quick link to the plugin page.
-			add_filter( 'plugin_action_links_simply-static/simply-static.php', array(
-				self::$instance,
-				'add_quick_links'
-			) );
+				// Add quick link to the plugin page.
+				add_filter( 'plugin_action_links_simply-static/simply-static.php', array(
+					self::$instance,
+					'add_quick_links'
+				) );
 
-			// Handle Basic Auth.
-			add_filter( 'http_request_args', array( self::$instance, 'add_http_filters' ), 10, 2 );
+				// Handle Basic Auth.
+				add_filter( 'http_request_args', array( self::$instance, 'add_http_filters' ), 10, 2 );
 
-			self::$instance->integrations = new Integrations();
-			self::$instance->integrations->load();
+				// Set up integrations.
+				self::$instance->integrations = new Integrations();
+				self::$instance->integrations->load();
 
-			self::$instance->options              = Options::instance();
-			self::$instance->view                 = new View();
-			self::$instance->archive_creation_job = new Archive_Creation_Job();
-			self::$instance->page_handlers        = new Page_Handlers();
+				// Set up defaults.
+				self::$instance->options              = Options::instance();
+				self::$instance->view                 = new View();
+				self::$instance->archive_creation_job = new Archive_Creation_Job();
+				self::$instance->page_handlers        = new Page_Handlers();
 
-			$page                         = isset( $_GET['page'] ) ? $_GET['page'] : '';
-			self::$instance->current_page = $page;
+				// Set up pagination.
+				$page                         = isset( $_GET['page'] ) ? $_GET['page'] : '';
+				self::$instance->current_page = $page;
 
-			// Maybe run upgrade.
-			Upgrade_Handler::run();
+				// Maybe run upgrade.
+				Upgrade_Handler::run();
 
-			// Multisite.
-			if ( is_multisite() ) {
-				Multisite::get_instance();
-			}
+				// Multisite.
+				if ( is_multisite() ) {
+					Multisite::get_instance();
+				}
 
-			// Plugin compatibility.
-			Plugin_Compatibility::get_instance();
+				// Plugin compatibility.
+				Plugin_Compatibility::get_instance();
 
-			// Boot up admin.
-			Admin_Settings::get_instance();
+				// Boot up admin.
+				Admin_Settings::get_instance();
+			} );
 		}
 
 		return self::$instance;
